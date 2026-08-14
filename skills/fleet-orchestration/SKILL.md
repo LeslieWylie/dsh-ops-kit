@@ -1,11 +1,11 @@
 ---
-name: octoloop-orchestration
-description: Coordinate OctoLoop agents with leader-only dispatch, shared-worktree discipline, runtime ownership, and cleanup evidence.
+name: fleet-orchestration
+description: Coordinate a fleet of agents with leader-only dispatch, shared-worktree discipline, runtime ownership, and cleanup evidence.
 ---
 
-# OctoLoop orchestration
+# Fleet orchestration
 
-Use this skill when a task uses Octo squads, agents, issues, custom runtimes, or benchmark sandbox runs.
+Use this skill when a task uses multi-agent squads, issues, custom runtimes, or benchmark sandbox runs.
 
 ## Topology
 

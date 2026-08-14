@@ -1,9 +1,9 @@
 ---
-name: rlvr-orchestration
-description: Run evidence-driven RLVR research and review loops with explicit roles, coverage, uncertainty, and artifacts.
+name: research-orchestration
+description: Run evidence-driven research and review loops with explicit roles, coverage, uncertainty, and artifacts.
 ---
 
-# RLVR evidence orchestration
+# Evidence-driven research orchestration
 
 Use this skill for complex research, benchmark design, model/gateway investigations, or multi-agent review.
 

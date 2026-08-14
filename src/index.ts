@@ -44,20 +44,20 @@ function asJson(value: unknown): JsonValue {
 
 const CATALOG = [
   {
-    id: 'rlvr-memory',
-    title: 'RLVR Git-first memory',
+    id: 'memory-evidence',
+    title: 'Git-first project memory',
     purpose: '用可追溯的 Markdown 记忆、索引、校验和分层晋升支撑长期工作。',
     capabilities: ['source-backed retrieval', 'memory validation', 'knowledge boundaries', 'promotion evidence'],
   },
   {
-    id: 'rlvr-orchestration',
-    title: 'RLVR evidence orchestration',
+    id: 'research-orchestration',
+    title: 'Evidence-driven research orchestration',
     purpose: '把研究、评测、审查、综合拆成可复核阶段，区分事实、推断和缺口。',
     capabilities: ['adaptive research loop', 'coverage audit', 'review gates', 'artifact contracts'],
   },
   {
-    id: 'octoloop-orchestration',
-    title: 'OctoLoop collaboration',
+    id: 'fleet-orchestration',
+    title: 'Fleet collaboration',
     purpose: '把 leader、成员、Issue、runtime、共享工作树和清理台账组成可审计编排。',
     capabilities: ['leader-only dispatch', 'shared-worktree handoff', 'runtime targeting', 'cleanup evidence'],
   },
@@ -75,13 +75,13 @@ const CATALOG = [
   },
 ] as const
 
-const MODES = ['rlvr-research', 'rlvr-memory', 'octoloop-benchmark', 'plugin-release', 'incident-review'] as const
+const MODES = ['research-loop', 'memory-evidence', 'fleet-benchmark', 'plugin-release', 'incident-review'] as const
 type Mode = typeof MODES[number]
 
 const SKILL_FILES: Record<string, string> = {
-  'rlvr-memory': 'skills/rlvr-memory/SKILL.md',
-  'rlvr-orchestration': 'skills/rlvr-orchestration/SKILL.md',
-  'octoloop-orchestration': 'skills/octoloop-orchestration/SKILL.md',
+  'memory-evidence': 'skills/memory-evidence/SKILL.md',
+  'research-orchestration': 'skills/research-orchestration/SKILL.md',
+  'fleet-orchestration': 'skills/fleet-orchestration/SKILL.md',
   'benchmark-evidence': 'skills/benchmark-evidence/SKILL.md',
   'dsh-plugin-release': 'skills/dsh-plugin-release/SKILL.md',
 }
@@ -169,9 +169,9 @@ function planFor(mode: Mode, objective: string): JsonObject {
     { id: 'handoff', title: '交付与复盘', action: '输出可复用结论、提交边界、回滚方式和下一步。', evidence: ['commit', 'artifact manifest', 'rollback'] },
   ]
   const overlays: Record<Mode, JsonObject> = {
-    'rlvr-research': { extra: ['coverage matrix', 'source provenance', 'adversarial review'], roles: ['planner', 'researcher', 'synthesizer', 'reviewer'] },
-    'rlvr-memory': { extra: ['layer population', 'index validation', 'read-back probe'], roles: ['collector', 'curator', 'validator'] },
-    'octoloop-benchmark': { extra: ['leader-only dispatch', 'shared-worktree coordination', 'runtime ownership', 'cleanup sweep'], roles: ['top-level', 'leader', 'members', 'auditor'] },
+    'research-loop': { extra: ['coverage matrix', 'source provenance', 'adversarial review'], roles: ['planner', 'researcher', 'synthesizer', 'reviewer'] },
+    'memory-evidence': { extra: ['layer population', 'index validation', 'read-back probe'], roles: ['collector', 'curator', 'validator'] },
+    'fleet-benchmark': { extra: ['leader-only dispatch', 'shared-worktree coordination', 'runtime ownership', 'cleanup sweep'], roles: ['top-level', 'leader', 'members', 'auditor'] },
     'plugin-release': { extra: ['package contract', 'secret scan', 'offline install', 'GitHub topic'], roles: ['maintainer', 'validator', 'publisher'] },
     'incident-review': { extra: ['live process', 'effective overrides', 'historical vs current evidence'], roles: ['triage', 'fixer', 'reviewer'] },
   }
@@ -212,7 +212,7 @@ export function apply(ctx: Context, config: Config = {}): void {
 
   ctx.tools.register(defineTool({
     name: 'dsh_ops_workflow_plan',
-    description: '为 RLVR 研究、Git-first memory、OctoLoop benchmark、插件发布或 incident review 生成证据驱动的结构化编排计划；只规划，不执行远程写入。',
+    description: '为研究闭环、Git-first memory、fleet benchmark、插件发布或 incident review 生成证据驱动的结构化编排计划；只规划，不执行远程写入。',
     parameters: {
       mode: { type: 'string', required: true, enum: [...MODES], description: '编排模式。' },
       objective: { type: 'string', required: true, description: '本次任务的具体目标。' },
@@ -229,7 +229,7 @@ export function apply(ctx: Context, config: Config = {}): void {
 
   ctx.tools.register(defineTool({
     name: 'dsh_ops_skill_read',
-    description: '读取本插件随包提供的完整技能说明。可读技能：rlvr-memory、rlvr-orchestration、octoloop-orchestration、benchmark-evidence、dsh-plugin-release。',
+    description: `读取本插件随包提供的完整技能说明。可读技能：${Object.keys(SKILL_FILES).join('、')}。`,
     parameters: { skill: { type: 'string', required: true, enum: Object.keys(SKILL_FILES), description: '技能标识。' } },
     output: { schema: { type: 'json' }, render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }] },
     execute: args => readSkill(String(args.skill)),

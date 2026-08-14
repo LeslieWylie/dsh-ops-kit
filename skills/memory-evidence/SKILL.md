@@ -1,9 +1,9 @@
 ---
-name: rlvr-memory
+name: memory-evidence
 description: Use Git-first project memory with provenance, bounded retrieval, validation, and explicit knowledge boundaries.
 ---
 
-# RLVR Git-first memory
+# Git-first project memory
 
 Use this skill when the task depends on prior project decisions, memory layers, retrieval quality, or durable research facts.
 

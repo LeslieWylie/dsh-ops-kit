@@ -27,14 +27,14 @@ test('registers the complete read-only tool surface', () => {
   ])
 })
 
-test('generates an OctoLoop plan without remote side effects', async () => {
+test('generates a fleet benchmark plan without remote side effects', async () => {
   const context = fakeContext()
   apply(context as never)
   const tool = context.registered[1]?.definition
   assert.ok(tool)
-  const value = await tool.execute({ mode: 'octoloop-benchmark', objective: '验证共享工作树的成员交接' }) as Record<string, unknown>
+  const value = await tool.execute({ mode: 'fleet-benchmark', objective: '验证共享工作树的成员交接' }) as Record<string, unknown>
   assert.equal(value.ok, true)
-  assert.equal(value.mode, 'octoloop-benchmark')
+  assert.equal(value.mode, 'fleet-benchmark')
   assert.match(JSON.stringify(value), /leader-only dispatch/)
 })
 
