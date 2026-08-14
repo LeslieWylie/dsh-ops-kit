@@ -6,8 +6,8 @@
  * capability discovery, evidence-first planning, packaged skill reading,
  * Git-backed memory search, repository hygiene audits, and release checklists.
  *
- * The bundle intentionally does not silently create issues, call remote Octo
- * APIs, run benchmarks, mutate repositories, or read credentials. Those are
+ * The bundle intentionally does not silently create issues, call remote
+ * fleet-system APIs, run benchmarks, mutate repositories, or read credentials. Those are
  * separate explicit actions handled by the user's existing tools and CLIs.
  */
 import type { Context } from '@deepseek-ai/cordis';

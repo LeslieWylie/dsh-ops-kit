@@ -13,7 +13,7 @@ DSH profile
        └── release checklist generator
 ```
 
-The bundle is deliberately an integration layer. Deep Research, Routines, Mnemon, and Octo's authenticated CLI remain separate capabilities. This package teaches the agent how to coordinate them and provides read-only inspection primitives; it does not replace their runtimes.
+The bundle is deliberately an integration layer. A long-running research agent, scheduled routine automation, a separate memory system, and an authenticated agent-fleet CLI remain separate capabilities. This package teaches the agent how to coordinate them and provides read-only inspection primitives; it does not replace their runtimes.
 
 ## Evidence contract
 
@@ -31,6 +31,6 @@ This prevents a green unit test from being reported as a live service proof, and
 
 The public package contains only source, declarations, skills, documentation, and build metadata. It excludes machine-specific paths, credentials, run archives, model responses, and private repository contents. Local roots are explicit configuration, bounded at runtime, and read-only.
 
-## Why no automatic Octo writes
+## Why no automatic remote-fleet writes
 
-Octo issue creation, assignment, rerun, mention, and cleanup are side effects. They belong to the authenticated `octo-daemon` workflow and require a concrete issue/workspace scope. The plugin can produce a correct plan and audit evidence, while the existing Octo skill/CLI performs an explicitly requested write.
+Issue creation, assignment, rerun, mention, and cleanup against a remote agent-fleet system are side effects. They belong to an authenticated CLI/daemon workflow and require a concrete issue/workspace scope. The plugin can produce a correct plan and audit evidence, while the existing fleet skill/CLI performs an explicitly requested write.

@@ -1,6 +1,6 @@
 # Mount the model-facing tools when this bundle is listed in
 # dsh.profile.bundles. The tools are deliberately read-only: actual benchmark
-# runs, remote Octo writes, and schedule mutations stay explicit user actions.
+# runs, remote fleet-system writes, and schedule mutations stay explicit user actions.
 - insert:
     - id: dsh-ops-kit
       name: '@dsh-community/dsh-ops-kit'
