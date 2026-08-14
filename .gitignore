@@ -1,0 +1,10 @@
+node_modules/
+.pnpm-store/
+*.tsbuildinfo
+.DS_Store
+coverage/
+dist/
+tmp/
+output/
+runs/
+secrets/
