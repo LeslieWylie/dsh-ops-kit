@@ -76,6 +76,26 @@ test('accepts a path that is the root but spelled through a symlink', async () =
 // Regression: 20 files x 8 snippets x 300 chars, pretty-printed, returned over
 // 40 KB for one common keyword — which crowds out the very context the answer
 // was meant to inform. The cap is a byte budget, not just a file count.
+// Regression: a symlink *inside* a configured root that points outside it used
+// to pass the containment check, because only `resolve()` was applied and
+// `resolve()` does not follow symlinks. Measured: root /safe with
+// /safe/escape -> /outside judged /safe/escape to be inside /safe, so the tool
+// would read and report on files beyond the declared boundary.
+test('refuses a symlink inside the root that escapes the root', async () => {
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'dsh-ops-kit-safe-')))
+  const outside = await realpath(await mkdtemp(join(tmpdir(), 'dsh-ops-kit-outside-')))
+  await writeFile(join(outside, 'secret-notes.md'), 'beyond the boundary', 'utf8')
+  await symlink(outside, join(root, 'escape'), 'dir')
+  const context = fakeContext()
+  apply(context as never, { roots: [root] })
+  const tool = context.registered[4]?.definition
+  assert.ok(tool)
+  await assert.rejects(
+    () => Promise.resolve(tool.execute({ path: join(root, 'escape') })),
+    /outside configured roots/,
+  )
+})
+
 test('caps the search response by bytes, not only by file count', async () => {
   const root = await mkdtemp(join(tmpdir(), 'dsh-ops-kit-big-'))
   const padded = Array.from({ length: 60 }, () =>

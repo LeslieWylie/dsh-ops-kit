@@ -24,7 +24,7 @@
 //
 // Run: node test/boot.test.mjs
 
-import { mkdtemp, writeFile, readFile } from 'node:fs/promises'
+import { mkdtemp, writeFile, readFile, realpath } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { execFile } from 'node:child_process'
@@ -164,11 +164,22 @@ try {
   await writeFile(join(scratch, 'untracked.md'), '# untracked\n')
 
   const audit = await tools.dsh_ops_repository_audit.execute({ path: scratch }, {})
-  // assertAllowedPath uses path.resolve(), not fs.realpathSync() — a deliberate
-  // choice (a path-safety check has no business following filesystem symlinks).
-  // scratch is already an absolute, resolve()-stable path from mkdtemp, so the
-  // tool's output should match it exactly, byte for byte.
-  check('repository_audit resolves the exact path.resolve()-normalized repository path', audit.repository === scratch, audit.repository)
+  // assertAllowedPath canonicalizes through fs.realpath, so the audit reports
+  // the real location it inspected.
+  //
+  // This file previously asserted the opposite, on the rationale that "a
+  // path-safety check has no business following filesystem symlinks". That is
+  // backwards for a *containment* check, and it was measured: with a root at
+  // /safe and a symlink /safe/escape -> /outside, resolve()-only judged
+  // /safe/escape to be inside /safe, so the tool would read and report on
+  // files beyond the boundary the config declared. Resolving both sides is
+  // what actually holds the boundary.
+  //
+  // mkdtemp returns a /var/... path on macOS, where /var is itself a symlink
+  // to /private/var, so compare against the realpath rather than the raw name.
+  const scratchReal = await realpath(scratch)
+  check('repository_audit reports the canonical (symlink-resolved) repository path',
+    audit.repository === scratchReal, `${audit.repository} !== ${scratchReal}`)
   check('repository_audit sees the real untracked file via real git status', audit.untracked?.includes('untracked.md'), JSON.stringify(audit.untracked))
   check('repository_audit correctly reports the repo as not clean', audit.clean === false)
   check('repository_audit flags the untracked file as a release blocker', audit.release_blockers?.some(b => b.includes('untracked')), JSON.stringify(audit.release_blockers))
