@@ -13,6 +13,11 @@
     "outDir": "lib",
     "verbatimModuleSyntax": true,
     "noUncheckedIndexedAccess": true,
+    // Without this tsc still writes lib/ when type checking fails. A build
+    // whose output looks correct while its exit code says otherwise is easy to
+    // read as success — that is exactly how a TS2532 reached CI from a local
+    // tree that appeared to build fine.
+    "noEmitOnError": true,
     "types": ["node"]
   },
   "include": ["src"]

@@ -409,7 +409,8 @@ export function apply(ctx: Context, config: Config = {}): void {
       // matched pair of surrounding quotes before comparing — without this the
       // check reported `'dsh-md-preview' !== dsh-md-preview` on every repo.
       const patchNames = [...patchRaw.matchAll(/^\s*name:\s*(\S+)/gm)]
-        .map(match => match[1].replace(/^(['"])(.*)\1$/, '$2'))
+        .map(match => (match[1] ?? '').replace(/^(['"])(.*)\1$/, '$2'))
+        .filter(Boolean)
       add('patch row matches package name', 'blocker',
         !patchRaw || patchNames.includes(String(pkg.name)),
         patchRaw ? `patch names=[${patchNames.join(', ')}] package.json name=${String(pkg.name)}` : 'skipped (no patch file)')
