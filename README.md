@@ -41,7 +41,7 @@ Then reinstall dependencies for that profile and restart it.
 | Capability pack | Tool | What it does | Side effects |
 | --- | --- | --- | --- |
 | Capability index | `dsh_ops_capability_catalog` | Lists the included capability packs | None |
-| Evidence-based orchestration | `dsh_ops_workflow_plan` | Produces a scope → baseline → work → coverage-review → handoff plan for research, multi-agent, benchmark, or release work | None |
+| Evidence-based orchestration | `dsh_ops_workflow_plan` | Produces a scope → baseline → context → execute → verify → handoff plan for research, multi-agent, benchmark, or release work | None |
 | Skill reference | `dsh_ops_skill_read` | Reads a packaged full skill definition | None |
 | Git-first memory | `dsh_ops_memory_search` | Searches bounded local Markdown/code roots for prior context, with source provenance | Read-only |
 | Repository audit | `dsh_ops_repository_audit` | Audits Git cleanliness, untracked files, and credential-path hygiene | Read-only |

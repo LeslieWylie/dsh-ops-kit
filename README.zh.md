@@ -41,12 +41,15 @@ dsh plugin --profile <profile> add dsh-ops-kit
 | 能力包 | 工具 | 能做什么 | 副作用 |
 | --- | --- | --- | --- |
 | 能力目录 | `dsh_ops_capability_catalog` | 列出包含的能力包 | 无 |
-| 证据驱动编排 | `dsh_ops_workflow_plan` | 为研究、多 agent 协作、benchmark 或发布场景生成"目标 → 基线 → 执行 → 覆盖审查 → 交付"计划 | 无 |
+| 证据驱动编排 | `dsh_ops_workflow_plan` | 为研究、多 agent 协作、benchmark 或发布场景生成"目标 → 基线 → 上下文控制 → 执行 → 验证 → 交付"计划 | 无 |
 | Skill 参考 | `dsh_ops_skill_read` | 读取随包提供的完整 skill 定义 | 无 |
 | Git-first memory | `dsh_ops_memory_search` | 在限定的本地 Markdown/代码根目录中检索，带来源出处 | 只读 |
 | 仓库审计 | `dsh_ops_repository_audit` | 审计 Git 状态、未跟踪文件和凭据路径卫生 | 只读 |
 | 发布卫生 | `dsh_ops_release_checklist` | 生成完整的 DSH 插件发布清单 | 无 |
+| 发布核验 | `dsh_ops_plugin_doctor` | 不是复述清单，而是拿它去量一个插件仓库：`dsh.bundle` + `cordis.patch.yml` 可安装性、patch 行与包名是否对得上、`private`/`files`/`exports` 的可发布性、`@deepseek-ai/*` 是否留在 peer、以及打印 `SKIPPED` 后 `exit 0` 的假绿 boot 套件 | 只读 |
 | 运行时体检 | `dsh_ops_runtime_doctor` | 检查官方 terminal/persistent-bash 握手是否一致 | 只读 |
+
+`dsh_ops_release_checklist` 说发布需要满足什么，`dsh_ops_plugin_doctor` 负责测量它有没有真的做到。这个拆分是刻意的——没人核验的清单，正是 boot 套件打印 `SKIPPED` 然后 `exit 0`、CI 一片绿而集成检查从未跑过的由来，也是某个插件一直挂着 `"private": true`、根本发不出去的由来。
 
 多 agent 协作的调度规则（leader 唯一派工、共享工作树协调、runtime 归属、清理证据）和 benchmark 证据把关（manifest、precheck、产物清单、结果完整性检查）内置在 workflow-plan 和 release-checklist 这两个 skill 里，而不是单独的工具。
 

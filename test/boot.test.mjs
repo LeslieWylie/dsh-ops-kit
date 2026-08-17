@@ -135,6 +135,26 @@ if (Object.values(tools).some(t => t === undefined)) {
 }
 
 const SKILL_NAMES = ['memory-evidence', 'research-orchestration', 'fleet-orchestration', 'benchmark-evidence', 'dsh-plugin-release']
+
+// The shipped contract, spelled out. Every capability pack here is user-visible in the
+// README table; `runtime-doctor` is a tool-backed pack with no SKILL.md, which is why
+// this list is one longer than SKILL_NAMES. Adding a pack or a stage should be a
+// deliberate edit here, not a number that quietly moves.
+const CAPABILITY_IDS = [...SKILL_NAMES, 'runtime-doctor']
+const STAGE_IDS = ['scope', 'baseline', 'context', 'execute', 'verify', 'handoff']
+
+const sameSet = (actual, expected) => Array.isArray(actual)
+  && actual.length === expected.length
+  && expected.every(id => actual.includes(id))
+const diffSet = (actual, expected) => {
+  if (!Array.isArray(actual)) return `expected an array, got ${JSON.stringify(actual)}`
+  const missing = expected.filter(id => !actual.includes(id))
+  const extra = actual.filter(id => !expected.includes(id))
+  return [
+    missing.length ? `missing: ${missing.join(', ')}` : '',
+    extra.length ? `undocumented: ${extra.join(', ')}` : '',
+  ].filter(Boolean).join(' | ') || `got ${JSON.stringify(actual)}`
+}
 const skillList = await ctx.skills.list()
 const skillNames = new Set(skillList.map(s => s.name))
 for (const skillName of SKILL_NAMES) {
@@ -145,13 +165,17 @@ console.log('\n--- execute against real state (not a stub) ---')
 
 try {
   // dsh_ops_capability_catalog: pure, deterministic.
+  // Assert the exact ids, not the count: a bare `length === N` says "6 !== 5" without
+  // naming what drifted, which is how a capability got added here with the suite stale.
   const catalog = await tools.dsh_ops_capability_catalog.execute({}, {})
-  check('capability_catalog lists all 5 documented capabilities', catalog.capabilities?.length === 5, JSON.stringify(catalog.capabilities?.map(c => c.id)))
+  check('capability_catalog lists exactly the documented capability packs',
+    sameSet(catalog.capabilities?.map(c => c.id), CAPABILITY_IDS), diffSet(catalog.capabilities?.map(c => c.id), CAPABILITY_IDS))
 
   // dsh_ops_workflow_plan: pure logic, but exercises the real MODES/overlays tables.
   const plan = await tools.dsh_ops_workflow_plan.execute({ mode: 'fleet-benchmark', objective: 'boot test' }, {})
   check('workflow_plan accepts the current (post-rename) mode enum', plan.mode === 'fleet-benchmark', JSON.stringify(plan))
-  check('workflow_plan produces the 5-stage evidence contract', Array.isArray(plan.stages) && plan.stages.length === 5)
+  check('workflow_plan produces the documented evidence contract',
+    sameSet(plan.stages?.map(s => s.id), STAGE_IDS), diffSet(plan.stages?.map(s => s.id), STAGE_IDS))
 
   // dsh_ops_skill_read: must return the *real* packaged file content, not a stub string.
   const skillRead = await tools.dsh_ops_skill_read.execute({ skill: 'memory-evidence' }, {})
