@@ -4,6 +4,8 @@
 
 **五个只读 skill，让 agent 在开口之前先亮出证据——无论它说的是"我记得这个"、"计划做完了"、"benchmark 过了"，还是"可以发布了"。**
 
+另外提供运行时体检，专门检查官方 PTY prompt 握手；否则极简模式下 terminal 和 persistent-bash 使用不同完成暗号时，命令会表现得像卡死。
+
 ## 为什么做这个
 
 Agent 说错话的时候往往一样自信。这个 bundle 只坚持一条规则：agent 声称"我记得这个"、"计划已就绪"、"benchmark 通过了"、"可以安全发布"之前，应该能指出可核查的证据，而不只是一句断言。五个聚焦的 skill 包共享这一套纪律——限定范围的 memory 检索、证据驱动的编排规划、多 agent 协作的调度规则、benchmark 结果把关、插件发布卫生——而不是把同一个想法拆成五个各自独立安装、各自占一个插件索引位置的包。
@@ -44,6 +46,7 @@ dsh plugin --profile <profile> add github:LeslieWylie/dsh-ops-kit
 | Git-first memory | `dsh_ops_memory_search` | 在限定的本地 Markdown/代码根目录中检索，带来源出处 | 只读 |
 | 仓库审计 | `dsh_ops_repository_audit` | 审计 Git 状态、未跟踪文件和凭据路径卫生 | 只读 |
 | 发布卫生 | `dsh_ops_release_checklist` | 生成完整的 DSH 插件发布清单 | 无 |
+| 运行时体检 | `dsh_ops_runtime_doctor` | 检查官方 terminal/persistent-bash 握手是否一致 | 只读 |
 
 多 agent 协作的调度规则（leader 唯一派工、共享工作树协调、runtime 归属、清理证据）和 benchmark 证据把关（manifest、precheck、产物清单、结果完整性检查）内置在 workflow-plan 和 release-checklist 这两个 skill 里，而不是单独的工具。
 
@@ -77,7 +80,16 @@ pnpm typecheck
 pnpm test
 ```
 
-接入运行中的 profile 后，还需验证：DSH 端点返回 HTTP 200、重启后 profile 仍处于 running、打包的 skill 能被列出，以及 `dsh_ops_capability_catalog` 返回全部能力包。
+包内还提供受保护的 `dsh-terminal-hotfix`。它只在匹配官方 rc.6 已知编译布局时修改，并自动生成带时间戳备份，随后重新检查 prompt 握手：
+
+```bash
+dsh-terminal-hotfix --check
+dsh-terminal-hotfix --apply
+```
+
+执行后需要重启 DSH。它不会由插件加载器偷偷执行，也不会静默修改依赖。
+
+接入运行中的 profile 后，还需验证：DSH 端点返回 HTTP 200、重启后 profile 仍处于 running、打包的 skill 能被列出、`dsh_ops_capability_catalog` 返回全部能力包，以及 `dsh_ops_runtime_doctor` 为 healthy。若报告 `terminal-prompt-mismatch`，先用 `dsh-terminal-hotfix --check` 检查，再执行可回滚修复；doctor 本身不会修改 `node_modules`。
 
 ## 许可
 

@@ -1,6 +1,6 @@
 {
   "name": "@dsh-community/dsh-ops-kit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A reusable DeepSeek Harness bundle for evidence-driven memory, orchestration, benchmark operations, repository audits, and plugin release workflows.",
   "keywords": [
     "dsh",
@@ -23,6 +23,9 @@
   "homepage": "https://github.com/LeslieWylie/dsh-ops-kit#readme",
   "type": "module",
   "main": "./lib/index.js",
+  "bin": {
+    "dsh-terminal-hotfix": "./scripts/dsh-terminal-hotfix.mjs"
+  },
   "types": "./lib/index.d.ts",
   "exports": {
     ".": {
@@ -33,6 +36,7 @@
   },
   "files": [
     "lib",
+    "scripts",
     "skills",
     "docs",
     "cordis.patch.yml",

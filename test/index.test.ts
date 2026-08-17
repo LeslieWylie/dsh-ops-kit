@@ -25,7 +25,19 @@ test('registers the complete read-only tool surface', () => {
     'dsh_ops_repository_audit',
     'dsh_ops_release_checklist',
     'dsh_ops_plugin_doctor',
+    'dsh_ops_runtime_doctor',
   ])
+})
+
+test('runtime doctor returns a fail-closed health shape', async () => {
+  const context = fakeContext()
+  apply(context as never)
+  const tool = context.registered.find(item => item.definition.name === 'dsh_ops_runtime_doctor')?.definition
+  assert.ok(tool)
+  const value = await tool.execute({}) as Record<string, unknown>
+  assert.equal(typeof value.ok, 'boolean')
+  assert.ok(Array.isArray(value.packages))
+  assert.ok(Array.isArray(value.findings))
 })
 
 test('generates a fleet benchmark plan without remote side effects', async () => {
@@ -111,4 +123,15 @@ test('caps the search response by bytes, not only by file count', async () => {
   assert.ok(bytes < 16_000, `response was ${bytes} bytes, expected under 16000`)
   assert.equal(value.truncated, true, 'must admit results were withheld')
   assert.ok((value.hits as unknown[]).length > 0)
+})
+
+test('repository audit does not call a failed git status clean', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-ops-kit-audit-'))
+  const context = fakeContext()
+  apply(context as never, { roots: [root] })
+  const tool = context.registered[4]?.definition
+  assert.ok(tool)
+  const value = await tool.execute({ path: root }) as Record<string, unknown>
+  assert.equal(value.clean, false)
+  assert.ok(Array.isArray(value.release_blockers))
 })

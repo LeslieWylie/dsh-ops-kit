@@ -12,10 +12,11 @@
  */
 
 import { execFile } from 'node:child_process'
+import { createRequire } from 'node:module'
 import { promisify } from 'node:util'
 import { readFile, readdir, stat } from 'node:fs/promises'
 import { readFileSync, realpathSync } from 'node:fs'
-import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { delimiter, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { JsonValue } from '@deepseek-ai/dsh-tools'
@@ -23,6 +24,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { SkillRegistration } from '@deepseek-ai/dsh-skill'
 
 const execFileAsync = promisify(execFile)
+const require = createRequire(import.meta.url)
 
 export const name = 'dsh-ops-kit'
 export const inject = ['tools', 'skills']
@@ -72,6 +74,12 @@ const CATALOG = [
     title: 'DSH plugin release',
     purpose: '将本地能力抽取成可安装、可验证、可公开维护的 DSH bundle。',
     capabilities: ['package contract', 'profile integration', 'offline checks', 'GitHub topic release'],
+  },
+  {
+    id: 'runtime-doctor',
+    title: 'DSH runtime doctor',
+    purpose: '在启动后的真实运行环境中检查官方终端握手、插件包契约和可恢复风险。',
+    capabilities: ['prompt handshake', 'plugin loader diagnosis', 'fail-closed health', 'repair guidance'],
   },
 ] as const
 
@@ -186,6 +194,7 @@ function planFor(mode: Mode, objective: string): JsonObject {
   const common = [
     { id: 'scope', title: '定义目标与边界', action: '写清问题、非目标、允许的副作用和验收条件。', evidence: ['objective', 'scope', 'non_goals'] },
     { id: 'baseline', title: '读取基线', action: '检查当前分支、配置、运行状态和已存在的变更。', evidence: ['git status', 'effective config', 'runtime probe'] },
+    { id: 'context', title: '控制上下文与重复输入', action: '记录已读文件、复用稳定摘要、只补增量，避免长会话反复注入同一内容。', evidence: ['files_read', 'dedupe', 'token_estimate'] },
     { id: 'execute', title: '最小可逆执行', action: '按依赖顺序执行，保留中间产物，不把推断当成事实。', evidence: ['command log', 'changed paths', 'result'] },
     { id: 'verify', title: '闭环验证', action: '运行与风险匹配的 focused check，并做真实连接/使用探针。', evidence: ['test', 'live probe', 'known limitations'] },
     { id: 'handoff', title: '交付与复盘', action: '输出可复用结论、提交边界、回滚方式和下一步。', evidence: ['commit', 'artifact manifest', 'rollback'] },
@@ -209,6 +218,57 @@ function planFor(mode: Mode, objective: string): JsonObject {
   }
 }
 
+function packageRoot(packageName: string): string | undefined {
+  const resolvers = [require]
+  const moduleRoots = [
+    ...(process.env.DSH_NODE_MODULES?.split(delimiter) ?? []),
+    ...(process.env.NODE_PATH?.split(delimiter) ?? []),
+  ].filter(Boolean)
+  for (const moduleRoot of moduleRoots) {
+    try { resolvers.push(createRequire(join(dirname(moduleRoot), 'package.json'))) } catch { /* ignore invalid search roots */ }
+  }
+  for (const resolver of resolvers) {
+    try { return dirname(resolver.resolve(`${packageName}/package.json`)) } catch { /* try next resolver */ }
+  }
+  return undefined
+}
+
+async function inspectRuntimePackage(packageName: string, marker: RegExp): Promise<JsonObject> {
+  const root = packageRoot(packageName)
+  if (!root) return { package: packageName, present: false }
+  const packageJson = JSON.parse(await readFile(join(root, 'package.json'), 'utf8')) as Record<string, unknown>
+  const entryPath = join(root, typeof packageJson.main === 'string' ? packageJson.main : 'lib/index.js')
+  const entry = await readFile(entryPath, 'utf8')
+  const match = entry.match(marker)
+  return {
+    package: packageName,
+    present: true,
+    version: packageJson.version,
+    entry: entryPath,
+    ...(match?.[1] ? { prompt: match[1] } : {}),
+  }
+}
+
+async function runtimeDoctor(): Promise<JsonValue> {
+  const terminal = await inspectRuntimePackage('@deepseek-ai/dsh-terminal-bash', /CONTROLLED_PROMPT\s*=\s*["']([^"']+)["']/)
+  const persistent = await inspectRuntimePackage('@deepseek-ai/dsh-tool-bash-persistent', /SHELL_PROMPT\s*=\s*["']([^"']+)["']/)
+  const terminalPrompt = typeof terminal.prompt === 'string' ? terminal.prompt : undefined
+  const persistentPrompt = typeof persistent.prompt === 'string' ? persistent.prompt : undefined
+  const findings: JsonObject[] = []
+  if (!terminal.present || !persistent.present) {
+    findings.push({ severity: 'info', code: 'bash-packages-not-installed', message: '官方 bash 包未同时安装，跳过握手检查。' })
+  } else if (terminalPrompt !== persistentPrompt) {
+    findings.push({
+      severity: 'error',
+      code: 'terminal-prompt-mismatch',
+      message: 'terminal-bash 与 tool-bash-persistent 使用了不同的 PS1 握手暗号，极简模式可能触发静默超时。',
+      repair: '运行 dsh-terminal-hotfix --check；确认后再执行 --apply，并重启 DSH。',
+    })
+  }
+  const status = findings.some(item => item.severity === 'error') ? 'degraded' : 'healthy'
+  return asJson({ ok: status === 'healthy', status, packages: [terminal, persistent], findings })
+}
+
 async function readSkill(skill: string): Promise<JsonValue> {
   const relativePath = SKILL_FILES[skill]
   if (!relativePath) throw new Error(`unknown skill: ${skill}`)
@@ -229,7 +289,7 @@ export function apply(ctx: Context, config: Config = {}): void {
     description: '列出 dsh-ops-kit 内置的 memory、证据编排、协作、benchmark 审计和插件发布能力。只读。',
     parameters: {},
     output: { schema: { type: 'json' }, render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }] },
-    execute: () => Promise.resolve(asJson({ name, version: '0.1.0', read_only_tools: true, capabilities: CATALOG })),
+    execute: () => Promise.resolve(asJson({ name, version: '0.1.1', read_only_tools: true, capabilities: CATALOG })),
   }))
 
   ctx.tools.register(defineTool({
@@ -321,20 +381,22 @@ export function apply(ctx: Context, config: Config = {}): void {
       const git = await execFileAsync('git', ['-C', repository, 'status', '--short', '--branch'], { timeout: 3000, maxBuffer: 100_000 }).catch(error => ({ stdout: '', stderr: String(error) }))
       const files = await walkTextFiles(repository, Math.min(maxFiles, 80), 3)
       const sensitive = files.filter(file => !safePath(file)).map(file => relative(repository, file))
+      const gitError = String(git.stderr || '').trim()
+      const statusLines = String(git.stdout).trim().split('\n').filter(Boolean)
       const untracked = String(git.stdout).split('\n').filter(line => line.startsWith('?? ')).map(line => line.slice(3)).slice(0, 100)
       return asJson({
         ok: true,
         repository,
         git_status: String(git.stdout).trim(),
-        clean: String(git.stdout).trim().split('\n').length <= 1,
+        clean: !gitError && statusLines.length <= 1,
         untracked,
         sensitive_candidates: sensitive,
         sampled_files: files.map(file => relative(repository, file)),
-        ...(String(git.stderr || '').trim() ? { git_error: String(git.stderr).trim() } : {}),
+        ...(gitError ? { git_error: gitError } : {}),
         release_blockers: [
           ...(untracked.length > 0 ? ['untracked files must be reviewed before staging'] : []),
           ...(sensitive.length > 0 ? ['credential-like paths must be excluded from a public package'] : []),
-          ...(String(git.stderr || '').trim() ? ['git status failed; do not infer cleanliness'] : []),
+          ...(gitError ? ['git status failed; do not infer cleanliness'] : []),
         ],
       })
     },
@@ -462,5 +524,13 @@ export function apply(ctx: Context, config: Config = {}): void {
         non_goals: ['read-only', 'no publish', 'no install', 'no network', 'no file mutation'],
       })
     },
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'dsh_ops_runtime_doctor',
+    description: '检查当前 DSH 运行时的官方 terminal-bash / tool-bash-persistent 握手和可恢复故障；只读，不修改 node_modules。',
+    parameters: {},
+    output: { schema: { type: 'json' }, render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }] },
+    execute: () => runtimeDoctor(),
   }))
 }

@@ -4,6 +4,8 @@
 
 **Five read-only skills that make an agent show its evidence — before it claims memory, a finished plan, a clean benchmark, or a safe release.**
 
+The bundle also includes a runtime doctor for the official PTY prompt handshake, because minimal-mode bash can otherwise look hung when the terminal and persistent-bash plugins use different completion prompts.
+
 ## Why this exists
 
 Agents are persuasive even when they are wrong. This bundle is built around one rule: before an agent says "I remember this," "the plan is ready," "the benchmark passed," or "the release is safe," it should be able to point at evidence for the claim instead of just asserting it. Five focused skill packs share that discipline — bounded memory search, evidence-based orchestration planning, agent-loop coordination rules, benchmark-result gating, and plugin release hygiene — instead of shipping the same idea as five separate packages that each need their own install and their own place in a plugin index.
@@ -45,6 +47,7 @@ dsh plugin --profile <profile> add github:LeslieWylie/dsh-ops-kit
 | Repository audit | `dsh_ops_repository_audit` | Audits Git cleanliness, untracked files, and credential-path hygiene | Read-only |
 | Release hygiene | `dsh_ops_release_checklist` | Produces a complete DSH plugin release checklist | None |
 | Release verification | `dsh_ops_plugin_doctor` | Checks a plugin repository against the checklist instead of restating it: `dsh.bundle` + `cordis.patch.yml` installability, patch row vs package name, `private`/`files`/`exports` publishability, `@deepseek-ai/*` kept as peers, and boot suites that print `SKIPPED` then `exit 0` | Read-only |
+| Runtime health | `dsh_ops_runtime_doctor` | Checks official terminal/persistent-bash prompt compatibility | Read-only |
 
 `dsh_ops_release_checklist` says what a release needs; `dsh_ops_plugin_doctor` measures whether it happened. The split is deliberate — a checklist that no one verifies is how a boot suite ended up printing `SKIPPED` and exiting `0`, turning CI green while the integration check never ran, and how a plugin stayed at `"private": true` and could never be published at all.
 
@@ -80,7 +83,16 @@ pnpm typecheck
 pnpm test
 ```
 
-After installing into a live profile, verify that the DSH endpoint returns HTTP 200, the profile stays running after restart, the packaged skills are listed, and `dsh_ops_capability_catalog` returns all capability packs.
+The package also ships a guarded `dsh-terminal-hotfix` command. It only patches the known official rc.6 compiled entry after an exact-layout check, creates a timestamped backup, and verifies the prompt handshake afterwards:
+
+```bash
+dsh-terminal-hotfix --check
+dsh-terminal-hotfix --apply
+```
+
+Restart DSH after applying it. The command is intentionally not run by the plugin loader and never silently edits dependencies.
+
+After installing into a live profile, verify that the DSH endpoint returns HTTP 200, the profile stays running after restart, the packaged skills are listed, `dsh_ops_capability_catalog` returns all capability packs, and `dsh_ops_runtime_doctor` is healthy. If it reports `terminal-prompt-mismatch`, use `dsh-terminal-hotfix --check` before applying a reversible repair; the doctor itself never edits `node_modules`.
 
 ## License
 
