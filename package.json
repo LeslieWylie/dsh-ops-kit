@@ -1,5 +1,5 @@
 {
-  "name": "@dsh-community/dsh-ops-kit",
+  "name": "dsh-ops-kit",
   "version": "0.1.1",
   "description": "A reusable DeepSeek Harness bundle for evidence-driven memory, orchestration, benchmark operations, repository audits, and plugin release workflows.",
   "keywords": [

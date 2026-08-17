@@ -14,27 +14,27 @@ Agent 说错话的时候往往一样自信。这个 bundle 只坚持一条规则
 
 ## 安装
 
-包还没有发布到 npm registry，直接从 GitHub 安装。加到 DSH profile 的 `package.json`：
+```bash
+dsh plugin --profile <profile> add dsh-ops-kit
+```
+
+从 registry 安装不需要本地构建，也不需要 `allowBuilds` 授权。如果你更习惯手改 profile 清单，等价写法是：
 
 ```jsonc
 // ~/.dsh/profiles/<profile>/package.json
 {
   "dependencies": {
-    "@dsh-community/dsh-ops-kit": "github:LeslieWylie/dsh-ops-kit"
+    "dsh-ops-kit": "^0.1.0"
   },
   "dsh": {
     "profile": {
-      "bundles": ["@deepseek-ai/dsh-base", "@deepseek-ai/dsh-web-app", "@dsh-community/dsh-ops-kit"]
+      "bundles": ["@deepseek-ai/dsh-base", "@deepseek-ai/dsh-web-app", "dsh-ops-kit"]
     }
   }
 }
 ```
 
-然后为该 profile 重新安装依赖并重启。如果你的 `dsh` CLI 版本支持直接按 spec 添加插件，等价的一行命令是：
-
-```bash
-dsh plugin --profile <profile> add github:LeslieWylie/dsh-ops-kit
-```
+然后为该 profile 重新安装依赖并重启。
 
 ## 提供的能力
 

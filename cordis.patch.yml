@@ -3,4 +3,4 @@
 # runs, remote fleet-system writes, and schedule mutations stay explicit user actions.
 - insert:
     - id: dsh-ops-kit
-      name: '@dsh-community/dsh-ops-kit'
+      name: 'dsh-ops-kit'

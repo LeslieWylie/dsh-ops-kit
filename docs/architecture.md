@@ -4,7 +4,7 @@
 
 ```text
 DSH profile
-  └── @dsh-community/dsh-ops-kit bundle
+  └── dsh-ops-kit bundle
        ├── capability catalog
        ├── evidence-first workflow planner
        ├── packaged skills

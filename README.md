@@ -14,27 +14,27 @@ Everything here is conservative by default: nothing silently creates issues, cal
 
 ## Install
 
-The package is not on the npm registry yet, so install it straight from GitHub. Add it to a DSH profile's `package.json`:
+```bash
+dsh plugin --profile <profile> add dsh-ops-kit
+```
+
+Installing from the registry means no build step and no `allowBuilds` approval. The equivalent, if you prefer editing the profile manifest by hand:
 
 ```jsonc
 // ~/.dsh/profiles/<profile>/package.json
 {
   "dependencies": {
-    "@dsh-community/dsh-ops-kit": "github:LeslieWylie/dsh-ops-kit"
+    "dsh-ops-kit": "^0.1.0"
   },
   "dsh": {
     "profile": {
-      "bundles": ["@deepseek-ai/dsh-base", "@deepseek-ai/dsh-web-app", "@dsh-community/dsh-ops-kit"]
+      "bundles": ["@deepseek-ai/dsh-base", "@deepseek-ai/dsh-web-app", "dsh-ops-kit"]
     }
   }
 }
 ```
 
-Then reinstall dependencies for that profile and restart it. If your `dsh` CLI build supports adding a plugin by spec directly, this is the equivalent one-liner:
-
-```bash
-dsh plugin --profile <profile> add github:LeslieWylie/dsh-ops-kit
-```
+Then reinstall dependencies for that profile and restart it.
 
 ## What's inside
 

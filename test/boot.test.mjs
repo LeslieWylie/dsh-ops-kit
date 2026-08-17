@@ -20,7 +20,7 @@
 // be resolved the suite SKIPS rather than fails, so `npm test` still works
 // from a clone. To run it for real:
 //
-//   cd ~/.dsh/profiles/<profile>/node_modules/@dsh-community/dsh-ops-kit && node test/boot.test.mjs
+//   cd ~/.dsh/profiles/<profile>/node_modules/dsh-ops-kit && node test/boot.test.mjs
 //
 // Run: node test/boot.test.mjs
 
@@ -104,7 +104,7 @@ check('control (skills gate): dsh-skill-filesystem loads without a harness warni
   !warnedAbout('dsh-skill-filesystem'), warnings.join(' | '))
 
 // ── load this package by its real installed name, as a profile would ──
-const self = await import('@dsh-community/dsh-ops-kit')
+const self = await import('dsh-ops-kit')
 const scratch = await mkdtemp(join(tmpdir(), 'dsh-ops-kit-boot-'))
 await ctx.plugin(self, { roots: [scratch] })
 // Registration goes through defineTool's own module import, which lands a
