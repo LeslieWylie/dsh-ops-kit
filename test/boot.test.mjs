@@ -247,6 +247,42 @@ try {
   check('plugin_doctor detects a silently-skipping boot suite',
     doctorCheck('boot test cannot silently pass')?.pass === false,
     JSON.stringify(doctorCheck('boot test cannot silently pass')))
+
+  // The two shapes the detector used to walk straight past. It required the
+  // literal string `SKIPPED` and a literal `process.exit(0)`; a suite that
+  // prints `SKIP` and exits via `process.exit(failed > 0 ? 1 : 0)` matched
+  // neither, so it was never read at all and the check reported "none found".
+  // Measured across this fleet, that was 2 of 7 boot suites.
+  const variant = async (label, source) => {
+    const dir = join(scratch, `variant-${label}`)
+    await mkdir(join(dir, 'tests'), { recursive: true })
+    await writeFile(join(dir, 'package.json'), JSON.stringify({ name: `v-${label}`, version: '1.0.0' }))
+    await writeFile(join(dir, 'tests', 'boot.test.mjs'), source)
+    const out = await tools.dsh_ops_plugin_doctor.execute({ path: dir }, {})
+    return out.checks?.find(entry => entry.id === 'boot test cannot silently pass')
+  }
+
+  const ternary = await variant('ternary',
+    "console.log('SKIP the runtime half')\nprocess.exit(failed > 0 ? 1 : 0)\n")
+  check('plugin_doctor catches a SKIP suite that exits 0 through a ternary',
+    ternary?.pass === false, JSON.stringify(ternary))
+
+  // Reading a STRICT variable is not the same as failing on it. Setting
+  // DSH_BOOT_STRICT in a workflow while the suite never acts on it is
+  // decorative, and the old escape hatch accepted exactly that.
+  const decorative = await variant('decorative',
+    "if (process.env.DSH_BOOT_STRICT === '1') console.log('strict mode')\nconsole.log('SKIP')\nprocess.exit(0)\n")
+  check('plugin_doctor is not satisfied by a STRICT variable that is never acted on',
+    decorative?.pass === false, JSON.stringify(decorative))
+
+  const guarded = await variant('guarded',
+    "console.log('SKIP')\nif (process.env.DSH_BOOT_STRICT === '1') process.exit(1)\nprocess.exit(0)\n")
+  check('plugin_doctor accepts a suite that genuinely fails closed under STRICT',
+    guarded?.pass === true, JSON.stringify(guarded))
+  // "none found" after reading nothing and "none found" after reading three
+  // are different facts; the detail has to say which one it is.
+  check('plugin_doctor reports how many skip-capable suites it actually read',
+    /examined 1 skip-capable/.test(String(guarded?.detail)), JSON.stringify(guarded))
   check('plugin_doctor flags "private": true as a publish blocker',
     doctorCheck('publishable to npm')?.pass === false)
   check('plugin_doctor matches a quoted patch name against package.json',

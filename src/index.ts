@@ -492,23 +492,49 @@ export function apply(ctx: Context, config: Config = {}): void {
       add('harness packages kept as peers', 'warning', misplaced.length === 0,
         misplaced.length > 0 ? `应放进 peerDependencies：${misplaced.join(', ')}` : 'none in dependencies')
 
-      // The defect this whole tool exists for: a boot suite that reports
-      // SKIPPED and exits 0 is indistinguishable from a passing one in CI.
+      // The defect this whole tool exists for: a boot suite that reports it is
+      // skipping and exits 0 is indistinguishable from a passing one in CI.
+      //
+      // The matching is deliberately loose on the way in and strict on the way
+      // out, because the failure mode of this check is silent. An earlier
+      // version required the literal string `SKIPPED` and a literal
+      // `process.exit(0)`; measured across this fleet, that filter read 5 of
+      // the 8 skip-capable boot suites and never once opened the other three,
+      // which print `SKIP` and exit via `process.exit(failed > 0 ? 1 : 0)`.
+      // Those three happened to be sound, so nothing was mis-certified — but a
+      // check that reports "none found" after examining nothing is the same
+      // defect it is looking for, one level up.
       const silentlySkipping: string[] = []
+      let examined = 0
       for (const dir of ['test', 'tests']) {
         const entries = await readdir(join(repository, dir)).catch(() => [] as string[])
         for (const entry of entries.slice(0, 40)) {
           if (!entry.endsWith('.mjs')) continue
           const source = await readFile(join(repository, dir, entry), 'utf8').catch(() => '')
-          if (!source.includes('SKIPPED') || !/process\.exit\(0\)/.test(source)) continue
-          if (/process\.env\.[A-Z_]*STRICT/.test(source)) continue
+          // No `\b` before SKIP. The token is nearly always written as
+          // ``console.log(`\nSKIP ...`)``, and in the file's *source text* the
+          // character before `S` is the `n` of the escape sequence — a word
+          // character, so a word boundary never matches. That single anchor
+          // silently excluded `dsh-task-relay`'s boot suite from this scan.
+          if (!/SKIP/.test(source) || !/process\.exit\(/.test(source)) continue
+          examined += 1
+          // The escape needs both halves. Reading a STRICT variable proves
+          // nothing on its own: setting `DSH_BOOT_STRICT: '1'` in a workflow
+          // while the suite never acts on it is decorative, and that exact
+          // combination shipped in this fleet before it was caught by hand.
+          const readsStrict = /process\.env\.[A-Z_]*STRICT/.test(source)
+          const actsOnStrict = /process\.exit\(1\)/.test(source)
+          if (readsStrict && actsOnStrict) continue
           silentlySkipping.push(relative(repository, join(repository, dir, entry)))
         }
       }
       add('boot test cannot silently pass', 'blocker', silentlySkipping.length === 0,
         silentlySkipping.length > 0
-          ? `${silentlySkipping.join(', ')}：打印 SKIPPED 后 process.exit(0) 且无 strict 环境变量兜底，CI 会显示绿勾但集成检查从未执行`
-          : 'no silently-skipping boot suite found')
+          ? `${silentlySkipping.join(', ')}：打印 SKIP 后可以 exit 0，且没有「读取 STRICT 变量并据此 exit(1)」的兜底，CI 会显示绿勾但集成检查从未执行`
+          // Say how many suites were actually read. "none found" after reading
+          // zero files and "none found" after reading three are different
+          // facts, and only one of them is reassuring.
+          : `examined ${examined} skip-capable boot suite(s); all of them fail closed under a STRICT env var`)
 
       const blockers = checks.filter(check => !check.pass && check.level === 'blocker')
       const warnings = checks.filter(check => !check.pass && check.level === 'warning')
