@@ -24,7 +24,7 @@
 //
 // Run: node test/boot.test.mjs
 
-import { mkdtemp, writeFile, readFile, realpath } from 'node:fs/promises'
+import { mkdtemp, mkdir, writeFile, readFile, realpath } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { execFile } from 'node:child_process'
@@ -120,6 +120,7 @@ const TOOL_NAMES = [
   'dsh_ops_memory_search',
   'dsh_ops_repository_audit',
   'dsh_ops_release_checklist',
+  'dsh_ops_plugin_doctor',
 ]
 const tools = {}
 for (const toolName of TOOL_NAMES) {
@@ -196,6 +197,39 @@ try {
   // dsh_ops_release_checklist: a simple, real execute() proof of the last tool.
   const checklist = await tools.dsh_ops_release_checklist.execute({}, {})
   check('release_checklist returns the documented sections', Array.isArray(checklist.non_goals) && checklist.non_goals.length > 0, JSON.stringify(checklist))
+
+  // dsh_ops_plugin_doctor: real checks against a real fixture on disk.
+  //
+  // The fixture deliberately reproduces the exact anti-pattern this tool
+  // exists to catch — a boot suite that prints SKIPPED and exits 0 — so if the
+  // detector ever stopped firing, this suite fails instead of passing
+  // vacuously. That is the same failure mode the tool reports on, and asserting
+  // only the healthy repos would reproduce it here.
+  const fixture = join(scratch, 'plugin-fixture')
+  await mkdir(join(fixture, 'test'), { recursive: true })
+  await writeFile(join(fixture, 'package.json'), JSON.stringify({
+    name: 'fixture-plugin',
+    version: '1.0.0',
+    private: true,
+    dsh: { bundle: { patch: './cordis.patch.yml' } },
+  }))
+  // Quoted on purpose: the name comparison once failed on every real repo
+  // because the capture kept the YAML quotes.
+  await writeFile(join(fixture, 'cordis.patch.yml'), "- insert:\n    - id: fixture\n      name: 'fixture-plugin'\n")
+  await writeFile(join(fixture, 'test', 'boot.test.mjs'), "console.log('--- harness boot: SKIPPED ---')\nprocess.exit(0)\n")
+
+  const doctor = await tools.dsh_ops_plugin_doctor.execute({ path: fixture }, {})
+  const doctorCheck = (id) => doctor.checks?.find(entry => entry.id === id)
+  check('plugin_doctor detects a silently-skipping boot suite',
+    doctorCheck('boot test cannot silently pass')?.pass === false,
+    JSON.stringify(doctorCheck('boot test cannot silently pass')))
+  check('plugin_doctor flags "private": true as a publish blocker',
+    doctorCheck('publishable to npm')?.pass === false)
+  check('plugin_doctor matches a quoted patch name against package.json',
+    doctorCheck('patch row matches package name')?.pass === true,
+    JSON.stringify(doctorCheck('patch row matches package name')))
+  check('plugin_doctor reports a real dsh.bundle as present',
+    doctorCheck('dsh.bundle declared')?.pass === true)
 } finally {
   rmSync(scratch, { recursive: true, force: true })
 }

@@ -24,6 +24,7 @@ test('registers the complete read-only tool surface', () => {
     'dsh_ops_memory_search',
     'dsh_ops_repository_audit',
     'dsh_ops_release_checklist',
+    'dsh_ops_plugin_doctor',
   ])
 })
 

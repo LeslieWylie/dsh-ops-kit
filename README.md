@@ -44,6 +44,9 @@ dsh plugin --profile <profile> add github:LeslieWylie/dsh-ops-kit
 | Git-first memory | `dsh_ops_memory_search` | Searches bounded local Markdown/code roots for prior context, with source provenance | Read-only |
 | Repository audit | `dsh_ops_repository_audit` | Audits Git cleanliness, untracked files, and credential-path hygiene | Read-only |
 | Release hygiene | `dsh_ops_release_checklist` | Produces a complete DSH plugin release checklist | None |
+| Release verification | `dsh_ops_plugin_doctor` | Checks a plugin repository against the checklist instead of restating it: `dsh.bundle` + `cordis.patch.yml` installability, patch row vs package name, `private`/`files`/`exports` publishability, `@deepseek-ai/*` kept as peers, and boot suites that print `SKIPPED` then `exit 0` | Read-only |
+
+`dsh_ops_release_checklist` says what a release needs; `dsh_ops_plugin_doctor` measures whether it happened. The split is deliberate — a checklist that no one verifies is how a boot suite ended up printing `SKIPPED` and exiting `0`, turning CI green while the integration check never ran, and how a plugin stayed at `"private": true` and could never be published at all.
 
 Agent-loop orchestration rules (leader-only dispatch, shared-worktree coordination, runtime ownership, cleanup evidence) and benchmark-evidence gating (manifests, prechecks, artifact inventory, result-integrity checks) ride along inside the workflow-plan and release-checklist skills rather than as separate tools.
 
