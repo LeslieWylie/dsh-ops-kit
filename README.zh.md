@@ -53,6 +53,8 @@ dsh plugin --profile <profile> add dsh-ops-kit
 
 多 agent 协作的调度规则（leader 唯一派工、共享工作树协调、runtime 归属、清理证据）和 benchmark 证据把关（manifest、precheck、产物清单、结果完整性检查）内置在 workflow-plan 和 release-checklist 这两个 skill 里，而不是单独的工具。
 
+`dsh_ops_memory_search` 是在下面配置的目录范围内做一次有界、无状态的检索：不建索引、不落盘，只回报命中的文件和行号。用来回答"这个 profile 之前见过这件事吗"深度刚好，用来承载"改完文件之后还得算数"的记忆则不够。当答案需要一个钉在某个 commit 上的引用、并且需要在引用失效时被告知，用 [`repository-memory`](https://github.com/LeslieWylie/repository-memory)：它是独立的 MCP server，并不绑定 DSH。两者互补而非二选一；本包里的 `memory-evidence` skill 描述的是用它们时都该守的纪律。
+
 ## 配置本地根目录
 
 使用 `dsh_ops_memory_search` 或 `dsh_ops_repository_audit` 时，把 `roots` 配置为该 profile 允许检查的目录。根目录要窄，绝不要指向凭据目录。

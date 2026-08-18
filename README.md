@@ -53,6 +53,8 @@ Then reinstall dependencies for that profile and restart it.
 
 Agent-loop orchestration rules (leader-only dispatch, shared-worktree coordination, runtime ownership, cleanup evidence) and benchmark-evidence gating (manifests, prechecks, artifact inventory, result-integrity checks) ride along inside the workflow-plan and release-checklist skills rather than as separate tools.
 
+`dsh_ops_memory_search` is a bounded, stateless grep over the roots you configure below: it builds no index, stores nothing, and reports the file and line it matched. That is the right depth for "has this profile seen this before" and the wrong depth for memory that has to outlive an edit. When an answer needs a citation pinned to a commit — and needs to be told when that citation goes stale — use [`repository-memory`](https://github.com/LeslieWylie/repository-memory), which runs as its own MCP server and is not DSH-specific. The two are complementary, not alternatives; the `memory-evidence` skill packaged here describes the discipline either one is used under.
+
 ## Configure local roots
 
 When using `dsh_ops_memory_search` or `dsh_ops_repository_audit`, configure roots to the directories the profile may inspect. Keep the root narrow and never point it at a credential directory.
