@@ -51,6 +51,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --test --import tsx test/*.test.ts && node test/boot.test.mjs",
+    "check-install": "node tools/check-install.mjs",
     "prepublishOnly": "pnpm build"
   },
   "dsh": {

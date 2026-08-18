@@ -27,3 +27,24 @@ jobs:
           # that state a failed job, while a bare clone without the harness
           # installed can still run `pnpm test` normally.
           DSH_BOOT_STRICT: '1'
+
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The job above runs inside this repository, where the harness resolves
+      # out of devDependencies. A person installing the published package has
+      # none of that. This packs the tarball, installs it into an empty project
+      # with npm (not pnpm — that is what a consumer will use), imports it by
+      # name, and runs the declared bin. Three sibling plugins in this fleet had
+      # their harness peers marked `optional: true` against a top-level import,
+      # so npm installed none of them and the first import threw
+      # ERR_MODULE_NOT_FOUND while every test still passed. This package
+      # declares them as required peers and is what proved that the difference,
+      # not the checker, was responsible — so the check belongs here too, where
+      # a future edit could introduce the same thing.
+      - run: node tools/check-install.mjs
